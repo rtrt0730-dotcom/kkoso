@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>업무 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --bg:       #0d0f14;
+    --surface:  #161b24;
+    --surface2: #1e2535;
+    --border:   #252d3d;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --accent:   #6366f1;
+    --accent2:  #818cf8;
+    --green:    #22c55e;
+    --yellow:   #f59e0b;
+    --red:      #ef4444;
+    --blue:     #3b82f6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Apple SD Gothic Neo','Malgun Gothic',sans-serif; min-height: 100vh; }
+
+  /* 상단 헤더 */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 14px; }
+  .logo { font-size: 16px; font-weight: 800; letter-spacing: 2px; color: var(--accent2); }
+  .topbar-date { font-size: 13px; color: var(--muted); }
+  .topbar-right { display: flex; gap: 10px; align-items: center; }
+  .tag-live { background: rgba(34,197,94,0.15); color: var(--green); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(34,197,94,0.3); }
+
+  /* 레이아웃 */
+  .layout { display: grid; grid-template-columns: 340px 1fr; gap: 0; height: calc(100vh - 57px); }
+  .sidebar { border-right: 1px solid var(--border); overflow-y: auto; padding: 20px 18px; display: flex; flex-direction: column; gap: 18px; }
+  .main { overflow-y: auto; padding: 20px 22px; display: flex; flex-direction: column; gap: 18px; }
+
+  /* 섹션 헤더 */
+  .section-hd {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .section-hd h2 { font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  .section-hd .count { font-size: 11px; background: var(--surface2); color: var(--muted); padding: 2px 8px; border-radius: 10px; }
+
+  /* 카드 */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+  .card-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+  /* KPI 미니 카드 */
+  .kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .kpi-mini { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .kpi-mini .km-label { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .kpi-mini .km-val { font-size: 18px; font-weight: 800; }
+  .kpi-mini .km-sub { font-size: 10px; color: var(--muted); margin-top: 3px; }
+  .c-green { color: var(--green); }
+  .c-yellow { color: var(--yellow); }
+  .c-blue   { color: var(--blue); }
+  .c-accent { color: var(--accent2); }
+
+  /* 할 일 */
+  .todo-add { display: flex; gap: 8px; margin-bottom: 14px; }
+  .todo-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); font-size: 13px; outline: none; font-family: inherit; }
+  .todo-input:focus { border-color: var(--accent); }
+  .todo-input::placeholder { color: var(--muted); }
+  .priority-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text); font-size: 12px; outline: none; cursor: pointer; font-family: inherit; }
+  .btn-add { background: var(--accent); color: white; border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity .2s; }
+  .btn-add:hover { opacity: .85; }
+
+  .todo-list { display: flex; flex-direction: column; gap: 6px; }
+  .todo-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px;
+    transition: opacity .2s;
+  }
+  .todo-item.done { opacity: .45; }
+  .todo-item.done .todo-text { text-decoration: line-through; color: var(--muted); }
+  .todo-cb { width: 16px; height: 16px; border: 2px solid var(--border); border-radius: 4px; cursor: pointer; flex-shrink: 0; margin-top: 2px; appearance: none; background: transparent; position: relative; transition: all .15s; }
+  .todo-cb:checked { background: var(--accent); border-color: var(--accent); }
+  .todo-cb:checked::after { content: '✓'; position: absolute; top: -2px; left: 1px; font-size: 11px; color: white; }
+  .todo-text { font-size: 13px; flex: 1; line-height: 1.5; }
+  .todo-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .priority-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+  .p-high   { background: var(--red); }
+  .p-mid    { background: var(--yellow); }
+  .p-low    { background: var(--green); }
+  .todo-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 0 2px; line-height: 1; opacity: 0; transition: opacity .15s; flex-shrink: 0; }
+  .todo-item:hover .todo-del { opacity: 1; }
+
+  /* 진행률 */
+  .progress-list { display: flex; flex-direction: column; gap: 12px; }
+  .prog-item { }
+  .prog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .prog-name { font-size: 13px; color: var(--text); font-weight: 500; }
+  .prog-pct  { font-size: 12px; font-weight: 700; color: var(--accent2); }
+  .prog-track { background: var(--surface2); border-radius: 6px; height: 6px; overflow: hidden; }
+  .prog-fill { height: 6px; border-radius: 6px; transition: width 1s ease; }
+
+  /* 주간 일정 */
+  .week-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .day-col { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px; min-height: 110px; }
+  .day-col.today { border-color: var(--accent); background: rgba(99,102,241,0.08); }
+  .day-name { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+  .day-date { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+  .day-col.today .day-date { color: var(--accent2); }
+  .day-event { font-size: 11px; background: rgba(99,102,241,0.18); color: var(--accent2); border-radius: 5px; padding: 4px 7px; margin-bottom: 4px; line-height: 1.4; border-left: 2px solid var(--accent); }
+  .day-event.ev-yellow { background: rgba(245,158,11,0.15); color: var(--yellow); border-left-color: var(--yellow); }
+  .day-event.ev-green  { background: rgba(34,197,94,0.12); color: var(--green); border-left-color: var(--green); }
+  .day-event.ev-red    { background: rgba(239,68,68,0.12); color: var(--red); border-left-color: var(--red); }
+
+  /* 차트 카드 */
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .chart-wrap { position: relative; height: 200px; }
+
+  /* 매출 테이블 */
+  .sales-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .sales-table th { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  .sales-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); color: var(--text); }
+  .sales-table tr:last-child td { border-bottom: none; }
+  .sales-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .sales-bar { height: 5px; border-radius: 3px; background: var(--accent); }
+  .badge-cat { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; }
+  .cat-elec { background: rgba(59,130,246,0.2); color: #93c5fd; }
+  .cat-life { background: rgba(34,197,94,0.2); color: #86efac; }
+
+  /* 시간 현황판 */
+  .clock-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px;
+    margin-top: auto;
+  }
+  .clock-row {
+    display: flex; align-items: center; gap: 10px; padding: 8px 0;
+  }
+  .clock-flag { font-size: 20px; flex-shrink: 0; }
+  .clock-info { flex: 1; min-width: 0; }
+  .clock-city { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+  .clock-time { font-size: 22px; font-weight: 800; letter-spacing: 1px; font-variant-numeric: tabular-nums; color: var(--text); line-height: 1; }
+  .clock-date { font-size: 10px; color: var(--muted); margin-top: 3px; }
+  .clock-offset { font-size: 10px; font-weight: 600; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); padding: 2px 7px; border-radius: 6px; flex-shrink: 0; }
+  .clock-weather { text-align: right; flex-shrink: 0; }
+  .weather-temp { font-size: 18px; font-weight: 800; color: var(--text); line-height: 1; }
+  .weather-icon { font-size: 18px; line-height: 1; }
+  .weather-desc { font-size: 10px; color: var(--muted); margin-top: 3px; white-space: nowrap; }
+  .clock-divider { height: 1px; background: var(--border); margin: 2px 0; }
+  .clock-gap-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 10px; padding: 8px 10px;
+    background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2);
+    border-radius: 8px;
+  }
+  .gap-label { font-size: 11px; color: var(--muted); font-weight: 600; }
+  .gap-value { font-size: 13px; font-weight: 800; color: var(--accent2); }
+  #clock-kr .clock-time { color: var(--accent2); }
+
+  /* 스크롤바 */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; height: auto; }
+    .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+    .kpi-row { grid-template-columns: repeat(3,1fr); }
+    .charts-row { grid-template-columns: 1fr; }
+    .week-grid { grid-template-columns: repeat(3,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- 상단 바 -->
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="logo">김비서</span>
+    <span class="topbar-date" id="today-str"></span>
+  </div>
+  <div class="topbar-right">
+    <span class="tag-live">● LIVE</span>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- ── 사이드바: 할 일 ── -->
+  <div class="sidebar">
+
+    <!-- KPI 요약 -->
+    <div>
+      <div class="section-hd">
+        <h2>오늘의 현황</h2>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-mini">
+          <div class="km-label">할 일</div>
+          <div class="km-val c-accent" id="kpi-total">0</div>
+          <div class="km-sub">전체 항목</div>
+        </div>
+        <div class="kpi-mini">
+          <div class="km-label">완료</div>
+          <div class="km-val c-green" id="kpi-done">0</div>
+          <div class="km-sub">체크 완료</div>
+        </div>
+        <div class="kpi-mini">
+          <div class="km-label">긴급</div>
+          <div class="km-val" style="color:var(--red)" id="kpi-urgent">0</div>
+          <div class="km-sub">높은 우선순위</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 진행률 바 -->
+    <div class="card">
+      <div class="card-title">📁 프로젝트 진행률</div>
+      <div class="progress-list">
+        <div class="prog-item">
+          <div class="prog-header"><span class="prog-name">4월 신제품 런칭 캠페인</span><span class="prog-pct">40%</span></div>
+          <div class="prog-track"><div class="prog-fill" style="width:40%;background:var(--accent)"></div></div>
+        </div>
+        <div class="prog-item">
+          <div class="prog-header"><span class="prog-name">SNS 영상 광고 제작</span><span class="prog-pct">30%</span></div>
+          <div class="prog-track"><div class="prog-fill" style="width:30%;background:var(--blue)"></div></div>
+        </div>
+        <div class="prog-item">
+          <div class="prog-header"><span class="prog-name">인플루언서 협업</span><span class="prog-pct">20%</span></div>
+          <div class="prog-track"><div class="prog-fill" style="width:20%;background:var(--yellow)"></div></div>
+        </div>
+        <div class="prog-item">
+          <div class="prog-header"><span class="prog-name">경쟁사 C사 캠페인 분석</span><span class="prog-pct">50%</span></div>
+          <div class="prog-track"><div class="prog-fill" style="width:50%;background:var(--green)"></div></div>
+        </div>
+        <div class="prog-item">
+          <div class="prog-header"><span class="prog-name">사이트 분석 보고서</span><span class="prog-pct">100%</span></div>
+          <div class="prog-track"><div class="prog-fill" style="width:100%;background:#a855f7"></div></div>
+        </div>
+        <div class="prog-item">
+          <div class="prog-header"><span class="prog-name">매출 보고서 작성</span><span class="prog-pct">100%</span></div>
+          <div class="prog-track"><div class="prog-fill" style="width:100%;background:#a855f7"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 할 일 목록 -->
+    <div>
+      <div class="section-hd">
+        <h2>오늘 할 일</h2>
+        <span class="count" id="todo-count-badge">0개</span>
+      </div>
+
+      <!-- 추가 입력 -->
+      <div class="todo-add">
+        <select class="priority-select" id="new-priority">
+          <option value="high">🔴 높음</option>
+          <option value="mid" selected>🟡 보통</option>
+          <option value="low">🟢 낮음</option>
+        </select>
+        <input class="todo-input" id="new-task" placeholder="할 일 입력..." />
+        <button class="btn-add" onclick="addTodo()">추가</button>
+      </div>
+
+      <div class="todo-list" id="todo-list"></div>
+    </div>
+
+    <!-- 시간 현황판 -->
+    <div class="clock-panel">
+      <div class="clock-row" id="clock-kr">
+        <div class="clock-flag">🇰🇷</div>
+        <div class="clock-info">
+          <div class="clock-city">서울 · KST</div>
+          <div class="clock-time" id="time-kr">--:--:--</div>
+          <div class="clock-date" id="date-kr">----</div>
+        </div>
+        <div class="clock-weather">
+          <div class="weather-icon" id="icon-kr">⏳</div>
+          <div class="weather-temp" id="temp-kr">--°</div>
+          <div class="weather-desc" id="desc-kr">로딩중</div>
+        </div>
+      </div>
+      <div class="clock-divider"></div>
+      <div class="clock-row" id="clock-ny">
+        <div class="clock-flag">🇺🇸</div>
+        <div class="clock-info">
+          <div class="clock-city">뉴욕 · ET</div>
+          <div class="clock-time" id="time-ny">--:--:--</div>
+          <div class="clock-date" id="date-ny">----</div>
+        </div>
+        <div class="clock-weather">
+          <div class="weather-icon" id="icon-ny">⏳</div>
+          <div class="weather-temp" id="temp-ny">--°</div>
+          <div class="weather-desc" id="desc-ny">로딩중</div>
+        </div>
+      </div>
+      <div class="clock-gap-bar">
+        <span class="gap-label">한국 ↔ 뉴욕</span>
+        <span class="gap-value" id="gap-ny">-13h</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 메인 콘텐츠 ── -->
+  <div class="main">
+
+    <!-- 주간 일정 -->
+    <div>
+      <div class="section-hd"><h2>이번 주 일정</h2></div>
+      <div class="week-grid">
+        <div class="day-col">
+          <div class="day-name">Mon</div>
+          <div class="day-date">3/31</div>
+          <div class="day-event">AI 인프라 포럼 2026<br>아주대 연암관</div>
+        </div>
+        <div class="day-col today">
+          <div class="day-name">Tue ← 오늘</div>
+          <div class="day-date">4/1</div>
+          <div class="day-event">주간 마케팅 리뷰</div>
+          <div class="day-event ev-yellow">분석 보고서 공유</div>
+        </div>
+        <div class="day-col">
+          <div class="day-name">Wed</div>
+          <div class="day-date">4/2</div>
+          <div class="day-event ev-red">🚨 3월 프로모션<br>기획안 제출 마감<br>(김대리)</div>
+        </div>
+        <div class="day-col">
+          <div class="day-name">Thu</div>
+          <div class="day-date">4/3</div>
+          <div class="day-event ev-yellow">영상 광고 1차 검토<br>(박사원)</div>
+        </div>
+        <div class="day-col">
+          <div class="day-name">Fri</div>
+          <div class="day-date">4/4</div>
+          <div class="day-event ev-red">🚨 인플루언서 미팅<br>일정 확정 마감<br>(이과장)</div>
+          <div class="day-event ev-green">티저 콘텐츠 배포<br>준비 시작</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 차트 2개 -->
+    <div class="charts-row">
+      <div class="card">
+        <div class="card-title">📊 제품별 매출 (1~2월)</div>
+        <div class="chart-wrap">
+          <canvas id="salesChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🗂 카테고리별 비중</div>
+        <div class="chart-wrap">
+          <canvas id="catChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- 추가 차트: 날짜별 추이 + 지역별 매출 -->
+    <div class="charts-row">
+      <div class="card">
+        <div class="card-title">📈 날짜별 매출 추이</div>
+        <div class="chart-wrap">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📍 지역별 매출</div>
+        <div class="chart-wrap">
+          <canvas id="regionChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- 매출 상세 테이블 -->
+    <div class="card">
+      <div class="card-title">💰 매출 현황 요약 <span style="font-size:11px;color:var(--muted);font-weight:400">(2026.01.05 ~ 02.10)</span></div>
+      <table class="sales-table">
+        <thead>
+          <tr>
+            <th>제품</th>
+            <th>카테고리</th>
+            <th>총 매출</th>
+            <th>비중</th>
+            <th>추이</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>무선 이어폰</strong></td>
+            <td><span class="badge-cat cat-elec">전자기기</span></td>
+            <td class="c-accent"><strong>28,836,000원</strong></td>
+            <td>44%</td>
+            <td><div class="sales-bar-wrap"><div class="sales-bar" style="width:110px;background:var(--accent)"></div></div></td>
+          </tr>
+          <tr>
+            <td>텀블러</td>
+            <td><span class="badge-cat cat-life">생활용품</span></td>
+            <td>11,525,000원</td>
+            <td>18%</td>
+            <td><div class="sales-bar-wrap"><div class="sales-bar" style="width:44px"></div></div></td>
+          </tr>
+          <tr>
+            <td>블루투스 스피커</td>
+            <td><span class="badge-cat cat-elec">전자기기</span></td>
+            <td>9,600,000원</td>
+            <td>15%</td>
+            <td><div class="sales-bar-wrap"><div class="sales-bar" style="width:37px"></div></div></td>
+          </tr>
+          <tr>
+            <td>보조배터리</td>
+            <td><span class="badge-cat cat-elec">전자기기</span></td>
+            <td>9,030,000원</td>
+            <td>14%</td>
+            <td><div class="sales-bar-wrap"><div class="sales-bar" style="width:34px"></div></div></td>
+          </tr>
+          <tr>
+            <td>에코백</td>
+            <td><span class="badge-cat cat-life">생활용품</span></td>
+            <td>6,165,000원</td>
+            <td>9%</td>
+            <td><div class="sales-bar-wrap"><div class="sales-bar" style="width:23px"></div></div></td>
+          </tr>
+          <tr>
+            <td>무선 충전기</td>
+            <td><span class="badge-cat cat-elec">전자기기</span></td>
+            <td>5,850,000원</td>
+            <td>9%</td>
+            <td><div class="sales-bar-wrap"><div class="sales-bar" style="width:22px"></div></div></td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:var(--muted)">총 매출액</span>
+        <span style="font-size:18px;font-weight:800;color:var(--accent2)">65,400,000원</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── 날짜 표시 ──
+const now = new Date();
+const days = ['일','월','화','수','목','금','토'];
+document.getElementById('today-str').textContent =
+  `${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일 (${days[now.getDay()]})`;
+
+// ── 할 일 데이터 ──
+let todos = [
+  { id:1, text:'영상 광고 3개 추가 제작 (B안 기반)', priority:'high', done:false, by:'박사원' },
+  { id:2, text:'인플루언서 미팅 일정 잡기', priority:'high', done:false, by:'이과장 · 금요일 마감' },
+  { id:3, text:'3월 프로모션 기획안 초안 작성', priority:'high', done:false, by:'김대리 · 수요일 마감' },
+  { id:4, text:'4월 신제품 런칭 티저 콘텐츠 준비', priority:'high', done:false, by:'팀 전체' },
+  { id:5, text:'경쟁사 C사 신규 캠페인 분석', priority:'mid', done:false, by:'박사원' },
+  { id:6, text:'주간 매출 보고서 업데이트', priority:'mid', done:false, by:'마케팅팀' },
+  { id:7, text:'AI 인프라 포럼 후기 정리', priority:'low', done:true, by:'어제 완료' },
+  { id:8, text:'사이트 분석 보고서 공유', priority:'low', done:true, by:'완료' },
+];
+let nextId = 9;
+
+function renderTodos() {
+  const list = document.getElementById('todo-list');
+  const sorted = [...todos].sort((a,b) => {
+    const order = {high:0, mid:1, low:2};
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    return order[a.priority] - order[b.priority];
+  });
+  list.innerHTML = sorted.map(t => `
+    <div class="todo-item ${t.done ? 'done' : ''}" id="todo-${t.id}">
+      <div class="priority-dot p-${t.priority}"></div>
+      <input type="checkbox" class="todo-cb" ${t.done ? 'checked' : ''} onchange="toggleTodo(${t.id})">
+      <div style="flex:1;min-width:0">
+        <div class="todo-text">${t.text}</div>
+        ${t.by ? `<div class="todo-meta">${t.by}</div>` : ''}
+      </div>
+      <button class="todo-del" onclick="deleteTodo(${t.id})">✕</button>
+    </div>
+  `).join('');
+  updateKPI();
+}
+
+function updateKPI() {
+  const total  = todos.length;
+  const done   = todos.filter(t => t.done).length;
+  const urgent = todos.filter(t => t.priority === 'high' && !t.done).length;
+  document.getElementById('kpi-total').textContent  = total;
+  document.getElementById('kpi-done').textContent   = done;
+  document.getElementById('kpi-urgent').textContent = urgent;
+  document.getElementById('todo-count-badge').textContent = `${total - done}개 남음`;
+}
+
+function toggleTodo(id) {
+  const t = todos.find(t => t.id === id);
+  if (t) t.done = !t.done;
+  renderTodos();
+}
+
+function deleteTodo(id) {
+  todos = todos.filter(t => t.id !== id);
+  renderTodos();
+}
+
+function addTodo() {
+  const input = document.getElementById('new-task');
+  const priority = document.getElementById('new-priority').value;
+  const text = input.value.trim();
+  if (!text) { input.focus(); return; }
+  todos.push({ id: nextId++, text, priority, done: false, by: '' });
+  input.value = '';
+  renderTodos();
+}
+
+document.getElementById('new-task').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addTodo();
+});
+
+renderTodos();
+
+// ── 세계 시계 ──
+const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function formatTime(date, tz) {
+  return date.toLocaleTimeString('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+}
+function formatDate(date, tz) {
+  const d = new Date(date.toLocaleString('en-US', { timeZone: tz }));
+  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} (${dayNames[d.getDay()]})`;
+}
+function updateClocks() {
+  const now = new Date();
+  document.getElementById('time-kr').textContent = formatTime(now, 'Asia/Seoul');
+  document.getElementById('date-kr').textContent = formatDate(now, 'Asia/Seoul');
+  document.getElementById('time-ny').textContent = formatTime(now, 'America/New_York');
+  document.getElementById('date-ny').textContent = formatDate(now, 'America/New_York');
+  // KR ↔ NY 시차
+  const krD = new Date(now.toLocaleString('en-US', {timeZone:'Asia/Seoul'}));
+  const nyD = new Date(now.toLocaleString('en-US', {timeZone:'America/New_York'}));
+  const diffH = Math.round((krD - nyD) / 3600000);
+  document.getElementById('gap-ny').textContent = `+${diffH}h (한국이 앞섬)`;
+
+  // DST 오프셋 자동 반영
+  document.getElementById('offset-ny').textContent = nyD.getTimezoneOffset() === 240 ? 'UTC-4' : 'UTC-5';
+}
+updateClocks();
+setInterval(updateClocks, 1000);
+
+// ── 날씨 ──
+const weatherCodeMap = {
+  113:'☀️', 116:'⛅️', 119:'☁️', 122:'☁️',
+  143:'🌫', 176:'🌦', 179:'🌨', 182:'🌧',
+  185:'🌧', 200:'⛈', 227:'🌨', 230:'❄️',
+  248:'🌫', 260:'🌫', 263:'🌦', 266:'🌧',
+  281:'🌧', 284:'🌧', 293:'🌧', 296:'🌧',
+  299:'🌧', 302:'🌧', 305:'🌧', 308:'🌧',
+  311:'🌧', 314:'🌧', 317:'🌨', 320:'🌨',
+  323:'❄️', 326:'❄️', 329:'❄️', 332:'❄️',
+  335:'❄️', 338:'❄️', 350:'🌨', 353:'🌦',
+  356:'🌧', 359:'🌧', 362:'🌨', 365:'🌨',
+  368:'🌨', 371:'❄️', 374:'🌨', 377:'🌨',
+  386:'⛈', 389:'⛈', 392:'⛈', 395:'❄️',
+};
+async function fetchWeather(city, iconId, tempId, descId) {
+  try {
+    const res = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=j1`);
+    const data = await res.json();
+    const cur = data.current_condition[0];
+    const code = parseInt(cur.weatherCode);
+    const icon = weatherCodeMap[code] || '🌡';
+    const temp = cur.temp_C + '°C';
+    const desc = cur.weatherDesc[0].value;
+    document.getElementById(iconId).textContent = icon;
+    document.getElementById(tempId).textContent = temp;
+    document.getElementById(descId).textContent = desc;
+  } catch(e) {
+    document.getElementById(descId).textContent = '날씨 오류';
+  }
+}
+fetchWeather('Seoul', 'icon-kr', 'temp-kr', 'desc-kr');
+fetchWeather('New York', 'icon-ny', 'temp-ny', 'desc-ny');
+setInterval(() => {
+  fetchWeather('Seoul', 'icon-kr', 'temp-kr', 'desc-kr');
+  fetchWeather('New York', 'icon-ny', 'temp-ny', 'desc-ny');
+}, 10 * 60 * 1000); // 10분마다 갱신
+
+// ── 차트: 제품별 매출 ──
+new Chart(document.getElementById('salesChart'), {
+  type: 'bar',
+  data: {
+    labels: ['무선 이어폰','텀블러','블루투스\n스피커','보조배터리','에코백','무선 충전기'],
+    datasets: [{
+      data: [28836000, 11525000, 9600000, 9030000, 6165000, 5850000],
+      backgroundColor: ['#6366f1','#818cf8','#a5b4fc','#c7d2fe','#ddd6fe','#ede9fe'],
+      borderRadius: 6, borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { ticks: { color: '#64748b', font: { size: 10 }, callback: v => (v/10000)+'만' }, grid: { color: 'rgba(255,255,255,0.06)' } }
+    }
+  }
+});
+
+// ── 차트: 카테고리 도넛 ──
+new Chart(document.getElementById('catChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['전자기기','생활용품'],
+    datasets: [{
+      data: [53316000, 17690000],
+      backgroundColor: ['#6366f1','#22c55e'],
+      borderWidth: 0, hoverOffset: 6,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '68%',
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 12 }, padding: 16 } },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${(ctx.raw/10000).toLocaleString()}만원 (${Math.round(ctx.raw/(53316000+17690000)*100)}%)`
+        }
+      }
+    }
+  }
+});
+
+// ── 날짜별 매출 추이 (무선 이어폰 vs 전체) ──
+new Chart(document.getElementById('trendChart'), {
+  type: 'line',
+  data: {
+    labels: ['1/5','1/8','1/12','1/15','1/19','1/22','1/26','2/1','2/5','2/10'],
+    datasets: [
+      {
+        label: '무선 이어폰',
+        data: [4005000, 4628000, null, 3382000, null, 5429000, null, 6230000, null, 5162000],
+        borderColor: '#818cf8', backgroundColor: 'rgba(129,140,248,0.1)',
+        tension: 0.4, fill: true, pointRadius: 4, pointBackgroundColor: '#818cf8',
+        spanGaps: true,
+      },
+      {
+        label: '텀블러',
+        data: [1950000, 1625000, null, 2100000, null, 1800000, null, 2375000, 1675000, null],
+        borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.05)',
+        tension: 0.4, fill: false, pointRadius: 4, pointBackgroundColor: '#22c55e',
+        spanGaps: true,
+      },
+      {
+        label: '보조배터리',
+        data: [1120000, null, 1435000, null, 1925000, null, 1680000, 1505000, null, 1365000],
+        borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.05)',
+        tension: 0.4, fill: false, pointRadius: 4, pointBackgroundColor: '#f59e0b',
+        spanGaps: true,
+      },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { labels: { color: '#94a3b8', font: { size: 11 }, boxWidth: 12 } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${(ctx.raw/10000).toFixed(0)}만원` } }
+    },
+    scales: {
+      x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { ticks: { color: '#64748b', font: { size: 10 }, callback: v => (v/10000)+'만' }, grid: { color: 'rgba(255,255,255,0.06)' } }
+    }
+  }
+});
+
+// ── 지역별 매출 ──
+new Chart(document.getElementById('regionChart'), {
+  type: 'bar',
+  data: {
+    labels: ['서울', '부산', '대구'],
+    datasets: [
+      { label: '무선 이어폰', data: [9434000, 8010000, 5162000+5230000], backgroundColor: '#6366f1' },
+      { label: '텀블러',     data: [1625000+2100000+1800000, 1950000+2375000, 1800000], backgroundColor: '#22c55e' },
+      { label: '블루투스 스피커', data: [2160000+2640000+3000000, 1800000, null], backgroundColor: '#3b82f6' },
+      { label: '보조배터리', data: [1120000+1680000+1505000, 1435000, 1925000+1365000], backgroundColor: '#f59e0b' },
+      { label: '에코백',     data: [1650000+1320000+1800000, null, 1395000+1800000], backgroundColor: '#a855f7' },
+      { label: '무선 충전기',data: [1305000+1485000, 1665000, 1395000], backgroundColor: '#ec4899' },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10 }, position: 'bottom' },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${((ctx.raw||0)/10000).toFixed(0)}만원` } }
+    },
+    scales: {
+      x: { stacked: true, ticks: { color: '#64748b', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { stacked: true, ticks: { color: '#64748b', font: { size: 10 }, callback: v => (v/10000)+'만' }, grid: { color: 'rgba(255,255,255,0.06)' } }
+    }
+  }
+});
+</script>
+</body>
+</html>

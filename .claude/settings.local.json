@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/kosoyoung/Desktop/워크숍-실습 -maxdepth 5 -name package.json ! -path */node_modules/* 2)",
+      "Bash(/dev/null find:*)",
+      "Bash(npx --version)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(git init:*)",
+      "Bash(git config:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
