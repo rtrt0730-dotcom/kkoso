@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Icon Generator</title>
+</head>
+<body>
+  <h1>아이콘 생성 (저장 후 삭제 예정)</h1>
+  <canvas id="canvas192" width="192" height="192"></canvas>
+  <canvas id="canvas512" width="512" height="512"></canvas>
+  <br>
+  <button onclick="downloadIcon(192)">192px 다운로드</button>
+  <button onclick="downloadIcon(512)">512px 다운로드</button>
+
+  <script>
+    function drawIcon(size) {
+      const canvas = document.getElementById(`canvas${size}`);
+      const ctx = canvas.getContext('2d');
+      const padding = size * 0.1;
+      const contentSize = size - (padding * 2);
+
+      // 배경
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(padding, padding, contentSize, contentSize);
+
+      // 테두리
+      ctx.strokeStyle = '#1a1a2e';
+      ctx.lineWidth = size * 0.02;
+      ctx.strokeRect(padding, padding, contentSize, contentSize);
+
+      // 텍스트 "김"
+      ctx.fillStyle = '#1a1a2e';
+      ctx.font = `bold ${size * 0.6}px 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('김', size / 2, size / 2);
+    }
+
+    function downloadIcon(size) {
+      drawIcon(size);
+      const canvas = document.getElementById(`canvas${size}`);
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = `icon-${size}.png`;
+      link.click();
+    }
+
+    // 초기 렌더링
+    drawIcon(192);
+    drawIcon(512);
+  </script>
+</body>
+</html>
