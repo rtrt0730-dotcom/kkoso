@@ -166,12 +166,46 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
+  /* 명언 카드 */
+  .quote-card {
+    background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(129,140,248,0.1));
+    border: 1px solid rgba(99,102,241,0.3);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 8px;
+  }
+  .quote-text {
+    font-size: 14px;
+    font-style: italic;
+    color: var(--accent2);
+    line-height: 1.6;
+    letter-spacing: 0.3px;
+  }
+  .quote-author {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+    margin-top: 8px;
+    font-weight: 500;
+  }
+
   @media (max-width: 900px) {
     .layout { grid-template-columns: 1fr; height: auto; }
     .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
     .kpi-row { grid-template-columns: repeat(3,1fr); }
     .charts-row { grid-template-columns: 1fr; }
     .week-grid { grid-template-columns: repeat(3,1fr); }
+    .quote-card { padding: 14px; margin-bottom: 6px; }
+    .quote-text { font-size: 13px; line-height: 1.5; }
+    .quote-author { font-size: 10px; margin-top: 6px; }
+  }
+
+  @media (max-width: 480px) {
+    .quote-card { padding: 12px; margin-bottom: 4px; border-radius: 10px; }
+    .quote-text { font-size: 12px; line-height: 1.4; letter-spacing: 0px; }
+    .quote-author { font-size: 9px; margin-top: 4px; }
+    .main { padding: 12px 14px; gap: 12px; }
+    .sidebar { padding: 12px 14px; gap: 12px; }
   }
 </style>
 </head>
@@ -308,6 +342,12 @@
 
   <!-- ── 메인 콘텐츠 ── -->
   <div class="main">
+
+    <!-- 오늘의 한마디 -->
+    <div class="quote-card">
+      <div class="quote-text" id="quote-text">로딩중...</div>
+      <div class="quote-author" id="quote-author"></div>
+    </div>
 
     <!-- 주간 일정 -->
     <div>
@@ -546,6 +586,38 @@ function updateClocks() {
 }
 updateClocks();
 setInterval(updateClocks, 1000);
+
+// ── 오늘의 한마디 ──
+const quotes = [
+  { text: "완벽함을 추구하지 말고, 진전을 추구하세요.", author: "— 아리스토텔레스" },
+  { text: "성공은 한 번의 큰 일이 아니라 작은 노력들의 합입니다.", author: "— 로버트 콜리어" },
+  { text: "당신의 시간은 소중합니다. 현명하게 사용하세요.", author: "— 스티브 잡스" },
+  { text: "매일 조금씩 나아지면, 1년 후엔 훨씬 달라져 있을 겁니다.", author: "— 제임스 클리어" },
+  { text: "어려움은 성장의 기회입니다.", author: "— 나폴레옹 힐" },
+  { text: "시작이 반입니다. 오늘 시작하세요.", author: "— 벤자민 프랭클린" },
+  { text: "꿈을 이루는 사람과 그렇지 못한 사람의 차이는 노력입니다.", author: "— 토마스 에디슨" },
+  { text: "가장 큰 위험은 아무것도 하지 않는 것입니다.", author: "— 데일 카네기" },
+  { text: "작은 개선이 모여 큰 변화를 만듭니다.", author: "— 제임스 클리어" },
+  { text: "오늘의 작은 노력이 내일의 큰 기쁨이 됩니다.", author: "— 고인디라 간디" },
+];
+
+function displayDailyQuote() {
+  const today = new Date().toISOString().split('T')[0];
+  const stored = localStorage.getItem('lastQuoteDate');
+  let quoteIndex = parseInt(localStorage.getItem('quoteIndex') || '0');
+
+  if (stored !== today) {
+    quoteIndex = (quoteIndex + 1) % quotes.length;
+    localStorage.setItem('quoteIndex', quoteIndex);
+    localStorage.setItem('lastQuoteDate', today);
+  }
+
+  const quote = quotes[quoteIndex];
+  document.getElementById('quote-text').textContent = `"${quote.text}"`;
+  document.getElementById('quote-author').textContent = quote.author;
+}
+
+displayDailyQuote();
 
 // ── 날씨 ──
 const weatherCodeMap = {
