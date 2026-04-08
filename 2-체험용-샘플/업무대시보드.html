@@ -192,21 +192,22 @@
 
   @media (max-width: 900px) {
     .layout { grid-template-columns: 1fr; height: auto; }
-    .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+    .sidebar { border-right: none; border-bottom: 1px solid var(--border); overflow-y: visible; }
+    .main { overflow-y: visible; min-height: auto; }
     .kpi-row { grid-template-columns: repeat(3,1fr); }
     .charts-row { grid-template-columns: 1fr; }
     .week-grid { grid-template-columns: repeat(3,1fr); }
-    .quote-card { padding: 14px; margin-bottom: 6px; }
+    .quote-card { padding: 14px; margin-bottom: 6px; display: block; }
     .quote-text { font-size: 13px; line-height: 1.5; }
     .quote-author { font-size: 10px; margin-top: 6px; }
   }
 
   @media (max-width: 480px) {
-    .quote-card { padding: 14px; margin-bottom: 10px; border-radius: 10px; border-width: 1.5px; }
+    .quote-card { padding: 14px; margin-bottom: 10px; border-radius: 10px; border-width: 1.5px; display: block; }
     .quote-text { font-size: 13px; line-height: 1.5; letter-spacing: 0px; }
     .quote-author { font-size: 10px; margin-top: 8px; }
-    .main { padding: 12px 14px; gap: 12px; }
-    .sidebar { padding: 12px 14px; gap: 12px; }
+    .main { padding: 12px 14px; gap: 12px; overflow-y: visible; }
+    .sidebar { padding: 12px 14px; gap: 12px; overflow-y: visible; }
   }
 </style>
 </head>
