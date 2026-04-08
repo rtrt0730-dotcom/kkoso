@@ -85,6 +85,65 @@
     .insight-card li { font-size: 14px; line-height: 1.8; color: #444; }
 
     footer { text-align: center; font-size: 12px; color: #aaa; padding: 24px; }
+
+    /* 모바일 최적화 (iPhone 15 Pro: 393px) */
+    @media (max-width: 480px) {
+      header {
+        padding: 24px 16px;
+      }
+      header h1 { font-size: 20px; }
+      header p { font-size: 12px; }
+
+      .container { padding: 20px 12px; }
+
+      .kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      .kpi-card {
+        padding: 16px;
+      }
+      .kpi-card .label { font-size: 11px; }
+      .kpi-card .value { font-size: 22px; }
+      .kpi-card .sub { font-size: 11px; }
+
+      .charts-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .chart-card {
+        padding: 16px;
+      }
+      .chart-card h2 { font-size: 13px; margin-bottom: 14px; }
+
+      .table-card {
+        padding: 16px;
+        margin-bottom: 24px;
+        overflow-x: auto;
+      }
+      .table-card h2 { font-size: 13px; margin-bottom: 12px; }
+      table { font-size: 12px; }
+      th { padding: 8px 10px; font-size: 11px; }
+      td { padding: 8px 10px; }
+      .badge { font-size: 10px; padding: 1px 8px; }
+
+      .insight-card {
+        padding: 16px 18px;
+        margin-bottom: 24px;
+      }
+      .insight-card h2 { font-size: 13px; margin-bottom: 10px; }
+      .insight-card ul { padding-left: 16px; }
+      .insight-card li { font-size: 12px; line-height: 1.6; }
+
+      .section-title {
+        font-size: 11px;
+        margin-bottom: 12px;
+      }
+
+      footer { padding: 16px; font-size: 11px; }
+    }
   </style>
 </head>
 <body>
