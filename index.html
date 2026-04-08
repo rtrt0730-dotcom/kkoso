@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="description" content="개인 업무 관리 및 데이터 분석 플랫폼">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/icon-192.svg">
+  <link rel="apple-touch-icon" href="/icon-192.svg">
   <title>Kim Secretary Dashboard</title>
   <style>
     :root { --bg: #0d0f14; --surface: #161b24; --text: #e2e8f0; --accent: #818cf8; }
@@ -50,5 +55,20 @@
       </a>
     </div>
   </div>
+
+  <script>
+    // Service Worker 등록 (PWA 활성화)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => {
+            console.log('✅ Service Worker 등록됨:', reg);
+          })
+          .catch(err => {
+            console.log('⚠️ Service Worker 등록 실패:', err);
+          });
+      });
+    }
+  </script>
 </body>
 </html>
